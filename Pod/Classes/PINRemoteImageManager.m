@@ -398,6 +398,17 @@ static dispatch_once_t sharedDispatchToken;
     return [self downloadImageWithURL:url
                               options:options
                       requestModifier:nil
+                           completion:completion];
+}
+
+- (NSUUID *)downloadImageWithURL:(NSURL *)url
+                         options:(PINRemoteImageManagerDownloadOptions)options
+                 requestModifier:(PINRemoteImageManagerRequestModifier)requestModifier
+                      completion:(PINRemoteImageManagerImageCompletion)completion
+{
+    return [self downloadImageWithURL:url
+                              options:options
+                      requestModifier:requestModifier
                         progressImage:nil
                            completion:completion];
 }
@@ -608,6 +619,7 @@ static dispatch_once_t sharedDispatchToken;
                               [strongSelf downloadImageWithURL:url
                                                        options:options
                                                       priority:priority
+                                               requestModifier:requestModifier
                                                            key:key
                                                      processor:processor
                                                           UUID:UUID];
@@ -633,6 +645,7 @@ static dispatch_once_t sharedDispatchToken;
 - (void)downloadImageWithURL:(NSURL *)url
                      options:(PINRemoteImageManagerDownloadOptions)options
                     priority:(PINRemoteImageManagerPriority)priority
+             requestModifier:(PINRemoteImageManagerRequestModifier)requestModifier
                          key:(NSString *)key
                    processor:(PINRemoteImageManagerImageProcessor)processor
                         UUID:(NSUUID *)UUID
@@ -649,6 +662,7 @@ static dispatch_once_t sharedDispatchToken;
         __weak typeof(self) weakSelf = self;
         NSUUID *downloadTaskUUID = [self downloadImageWithURL:url
                                                       options:options | PINRemoteImageManagerDownloadOptionsSkipEarlyCheck
+                                              requestModifier:requestModifier
                                                    completion:^(PINRemoteImageManagerResult *result)
         {
             typeof(self) strongSelf = weakSelf;
@@ -1210,6 +1224,7 @@ static dispatch_once_t sharedDispatchToken;
 
 - (NSUUID *)downloadImageWithURLs:(NSArray <NSURL *> *)urls
                           options:(PINRemoteImageManagerDownloadOptions)options
+                    progressImage:(PINRemoteImageManagerRequestModifier)requestModifier
                     progressImage:(PINRemoteImageManagerImageCompletion)progressImage
                        completion:(PINRemoteImageManagerImageCompletion)completion
 {
