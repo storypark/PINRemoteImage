@@ -82,6 +82,15 @@ float dataTaskPriorityWithImageManagerPriority(PINRemoteImageManagerPriority pri
 typedef void (^PINRemoteImageManagerImageCompletion)(PINRemoteImageManagerResult * __nonnull result);
 
 /**
+ A block that is invoked to apply custom, per-request modifications
+ 
+ @param request The NSMutableURLRequest that is indended to be sent
+ 
+ @return the actual mutated request to send
+ */
+typedef NSMutableURLRequest * _Nonnull(^PINRemoteImageManagerRequestModifier)(NSMutableURLRequest * __nonnull request);
+
+/**
  Processor block to post-process a downloaded image. Passed in a PINRemoteImageManagerResult and a pointer to an NSUInteger which can be updated to indicate the cost of processing the image.
  
  @param result PINRemoteImageManagerResult which contains the downloaded image.
@@ -318,6 +327,7 @@ typedef void(^PINRemoteImageManagerProgressDownload)(int64_t completedBytes, int
  */
 - (nullable NSUUID *)downloadImageWithURL:(nonnull NSURL *)url
                                   options:(PINRemoteImageManagerDownloadOptions)options
+                          requestModifier:(nullable PINRemoteImageManagerRequestModifier)requestModifier
                             progressImage:(nullable PINRemoteImageManagerImageCompletion)progressImage
                                completion:(nullable PINRemoteImageManagerImageCompletion)completion;
 
@@ -367,6 +377,7 @@ typedef void(^PINRemoteImageManagerProgressDownload)(int64_t completedBytes, int
 - (nullable NSUUID *)downloadImageWithURL:(nonnull NSURL *)url
                                   options:(PINRemoteImageManagerDownloadOptions)options
                              processorKey:(nullable NSString *)processorKey
+                          requestModifier:(nullable PINRemoteImageManagerRequestModifier)requestModifier
                                 processor:(nullable PINRemoteImageManagerImageProcessor)processor
                                completion:(nullable PINRemoteImageManagerImageCompletion)completion;
 
@@ -376,6 +387,7 @@ typedef void(^PINRemoteImageManagerProgressDownload)(int64_t completedBytes, int
  @param url NSURL where the image to download resides.
  @param options PINRemoteImageManagerDownloadOptions options with which to fetch the image.
  @param processorKey NSString key to uniquely identify processor and process. Will be used for caching processed images.
+ @param requestModifier PINRemoteImageManagerRequestModifier block to modify the download request
  @param progressDownload PINRemoteImageManagerDownloadProgress block which will be called to update progress in bytes of the image download. NOTE: For performance reasons, this block is not called on the main thread every time, if you need to update your UI ensure that you dispatch to the main thread first.
  @param processor PINRemoteImageManagerImageProcessor block which will be called to post-process downloaded image.
  @param completion PINRemoteImageManagerImageCompletion block to call when image has been fetched from the cache or downloaded.
@@ -385,6 +397,7 @@ typedef void(^PINRemoteImageManagerProgressDownload)(int64_t completedBytes, int
 - (nullable NSUUID *)downloadImageWithURL:(nonnull NSURL *)url
                                   options:(PINRemoteImageManagerDownloadOptions)options
                              processorKey:(nullable NSString *)processorKey
+                          requestModifier:(nullable PINRemoteImageManagerRequestModifier)requestModifier
                                 processor:(nullable PINRemoteImageManagerImageProcessor)processor
                          progressDownload:(nullable PINRemoteImageManagerProgressDownload)progressDownload
                                completion:(nullable PINRemoteImageManagerImageCompletion)completion;

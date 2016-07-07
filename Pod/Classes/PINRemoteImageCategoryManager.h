@@ -56,9 +56,17 @@
             completion:(nullable PINRemoteImageManagerImageCompletion)completion;
 
 + (void)setImageOnView:(nonnull id <PINRemoteImageCategory>)view
+               fromURL:(nullable NSURL *)url
+          processorKey:(nullable NSString *)processorKey
+       requestModifier:(nullable PINRemoteImageManagerRequestModifier)requestModifier
+             processor:(nullable PINRemoteImageManagerImageProcessor)processor
+            completion:(nullable PINRemoteImageManagerImageCompletion)completion;
+
++ (void)setImageOnView:(nonnull id <PINRemoteImageCategory>)view
               fromURLs:(nullable NSArray <NSURL *> *)urls
       placeholderImage:(nullable PINImage *)placeholderImage
           processorKey:(nullable NSString *)processorKey
+       requestModifier:(nullable PINRemoteImageManagerRequestModifier)requestModifier
              processor:(nullable PINRemoteImageManagerImageProcessor)processor
             completion:(nullable PINRemoteImageManagerImageCompletion)completion;
 
@@ -164,6 +172,18 @@
  @param completion Called when url has been retrieved and set on view.
  */
 - (void)pin_setImageFromURL:(nullable NSURL *)url placeholderImage:(nullable PINImage *)placeholderImage processorKey:(nullable NSString *)processorKey processor:(nullable PINRemoteImageManagerImageProcessor)processor completion:(nullable PINRemoteImageManagerImageCompletion)completion;
+
+/**
+ Set placeholder on view and retrieve the image from the given URL, process it using the passed in processor block and set result on view. Call completion after image has been fetched, processed and set on view.
+ 
+ @param url NSURL to fetch from.
+ @param placeholderImage PINImage to set on the view while the image at URL is being retrieved.
+ @param processorKey NSString key to uniquely identify processor. Used in caching.
+ @param requestModifier PINRemoteImageManagerRequestModifier block to modify the download request
+ @param processor PINRemoteImageManagerImageProcessor processor block which should return the processed image.
+ @param completion Called when url has been retrieved and set on view.
+ */
+- (void)pin_setImageFromURL:(nullable NSURL *)url placeholderImage:(nullable PINImage *)placeholderImage processorKey:(nullable NSString *)processorKey requestModifier:(nullable PINRemoteImageManagerRequestModifier)requestModifier processor:(nullable PINRemoteImageManagerImageProcessor)processor completion:(nullable PINRemoteImageManagerImageCompletion)completion;
 
 /**
  Retrieve one of the images at the passed in URLs depending on previous network performance and set result on view.

@@ -41,6 +41,7 @@
                 fromURLs:url?@[url]:nil
         placeholderImage:placeholderImage
             processorKey:nil
+         requestModifier:nil
                processor:nil
               completion:completion];
 }
@@ -67,6 +68,7 @@
                 fromURLs:url?@[url]:nil
         placeholderImage:placeholderImage
             processorKey:processorKey
+         requestModifier:nil
                processor:processor
               completion:nil];
 }
@@ -81,9 +83,27 @@
                 fromURLs:url?@[url]:nil
         placeholderImage:nil
             processorKey:processorKey
+         requestModifier:nil
                processor:processor
               completion:completion];
 }
+
++ (void)setImageOnView:(nonnull id <PINRemoteImageCategory>)view
+               fromURL:(nullable NSURL *)url
+          processorKey:(nullable NSString *)processorKey
+       requestModifier:(nullable PINRemoteImageManagerRequestModifier)requestModifier
+             processor:(nullable PINRemoteImageManagerImageProcessor)processor
+            completion:(nullable PINRemoteImageManagerImageCompletion)completion
+{
+    [self setImageOnView:view
+                fromURLs:url?@[url]:nil
+        placeholderImage:nil
+            processorKey:processorKey
+         requestModifier:requestModifier
+               processor:processor
+              completion:completion];
+}
+
 
 + (void)setImageOnView:(id <PINRemoteImageCategory>)view
               fromURLs:(NSArray <NSURL *> *)urls
@@ -112,6 +132,7 @@
                        fromURLs:urls
                placeholderImage:placeholderImage
                    processorKey:nil
+                requestModifier:nil
                       processor:nil
                      completion:completion];
 }
@@ -148,6 +169,7 @@
               fromURLs:(NSArray <NSURL *> *)urls
       placeholderImage:(PINImage *)placeholderImage
           processorKey:(NSString *)processorKey
+       requestModifier:(PINRemoteImageManagerRequestModifier)requestModifier
              processor:(PINRemoteImageManagerImageProcessor)processor
             completion:(PINRemoteImageManagerImageCompletion)completion
 {
@@ -157,6 +179,7 @@
                         fromURLs:urls
                 placeholderImage:placeholderImage
                     processorKey:processorKey
+                 requestModifier:requestModifier
                        processor:processor
                       completion:completion];
         });
@@ -253,11 +276,13 @@
         downloadImageOperationUUID = [[PINRemoteImageManager sharedImageManager] downloadImageWithURL:urls[0]
                                                                                               options:options
                                                                                          processorKey:processorKey
+                                                                                      requestModifier:requestModifier
                                                                                             processor:processor
                                                                                            completion:internalCompletion];
     } else {
         downloadImageOperationUUID = [[PINRemoteImageManager sharedImageManager] downloadImageWithURL:urls[0]
                                                                                               options:options
+                                                                                      requestModifier:requestModifier
                                                                                         progressImage:internalProgress
                                                                                            completion:internalCompletion];
     }
