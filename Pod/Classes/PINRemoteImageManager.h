@@ -22,6 +22,7 @@
 @class PINRemoteImageManagerResult;
 
 extern NSString * __nonnull const PINRemoteImageManagerErrorDomain;
+extern NSString * __nonnull const PINRemoteImageManagerErrorStatusCodeKey;
 
 /**
  Error codes returned by PINRemoteImage
@@ -37,6 +38,8 @@ typedef NS_ENUM(NSUInteger, PINRemoteImageManagerError) {
     PINRemoteImageManagerErrorInvalidItemInCache = 4,
     /** The image at the URL was empty */
     PINRemoteImageManagerErrorImageEmpty = 5,
+    /** A non-2XX status code was returned from the URL */
+    PINRemoteImageManagerErrorStatusCode = 6,
 };
 
 /**

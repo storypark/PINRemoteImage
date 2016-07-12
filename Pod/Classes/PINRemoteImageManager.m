@@ -81,6 +81,7 @@ float dataTaskPriorityWithImageManagerPriority(PINRemoteImageManagerPriority pri
 }
 
 NSString * const PINRemoteImageManagerErrorDomain = @"PINRemoteImageManagerErrorDomain";
+NSString * const PINRemoteImageManagerErrorStatusCodeKey = @"PINRemoteImageManagerErrorStatusCode";
 NSString * const PINRemoteImageCacheKey = @"cacheKey";
 typedef void (^PINRemoteImageManagerDataCompletion)(NSData *data, NSError *error);
 
@@ -857,10 +858,17 @@ static dispatch_once_t sharedDispatchToken;
                 NSData *data = task.progressImage.data;
             [strongSelf unlock];
             
-            if (error == nil && data == nil) {
-                error = [NSError errorWithDomain:PINRemoteImageManagerErrorDomain
-                                            code:PINRemoteImageManagerErrorImageEmpty
-                                        userInfo:nil];
+            if (error == nil) {
+                if ([response isKindOfClass:NSHTTPURLResponse.class]
+                    && [(NSHTTPURLResponse *)response statusCode] > 299) {
+                    error = [NSError errorWithDomain:PINRemoteImageManagerErrorDomain
+                                                code:PINRemoteImageManagerErrorStatusCode
+                                            userInfo:@{ PINRemoteImageManagerErrorStatusCodeKey : @([(NSHTTPURLResponse *)response statusCode]) }];
+                } else if (data == nil) {
+                    error = [NSError errorWithDomain:PINRemoteImageManagerErrorDomain
+                                                code:PINRemoteImageManagerErrorImageEmpty
+                                            userInfo:nil];
+                }
             }
             
             completion(data, error);
