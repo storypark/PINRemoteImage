@@ -313,10 +313,17 @@
                 if (error.code != NSURLErrorCancelled) {
                     NSData *data = self.progressImage.data;
                     
-                    if (error == nil && data == nil) {
-                        error = [NSError errorWithDomain:PINRemoteImageManagerErrorDomain
-                                                    code:PINRemoteImageManagerErrorImageEmpty
-                                                userInfo:nil];
+                    if (error == nil) {
+                        if ([response isKindOfClass:NSHTTPURLResponse.class]
+                            && [(NSHTTPURLResponse *)response statusCode] > 299) {
+                            error = [NSError errorWithDomain:PINRemoteImageManagerErrorDomain
+                                                        code:PINRemoteImageManagerErrorStatusCode
+                                                    userInfo:@{ PINRemoteImageManagerErrorStatusCodeKey : @([(NSHTTPURLResponse *)response statusCode]) }];
+                        } else if (data == nil) {
+                            error = [NSError errorWithDomain:PINRemoteImageManagerErrorDomain
+                                                        code:PINRemoteImageManagerErrorImageEmpty
+                                                    userInfo:nil];
+                        }
                     }
                     
                     __block BOOL retry = NO;
