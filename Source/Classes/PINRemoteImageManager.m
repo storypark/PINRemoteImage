@@ -929,43 +929,6 @@ static dispatch_once_t sharedDispatchToken;
     return NO;
 }
 
-//- (PINDataTaskOperation *)sessionTaskWithURL:(NSURL *)URL
-//                                        key:(NSString *)key
-//                                    options:(PINRemoteImageManagerDownloadOptions)options
-//                                   priority:(PINRemoteImageManagerPriority)priority
-//                            requestModifier:(PINRemoteImageManagerRequestModifier)requestModifier
-//{
-//    __weak typeof(self) weakSelf = self;
-//    return [self downloadDataWithURL:URL
-//                                 key:key
-//                            priority:priority
-//                     requestModifier:requestModifier
-//                          completion:^(NSData *data, NSError *error)
-//    {
-//        [_concurrentOperationQueue pin_addOperationWithQueuePriority:priority block:^
-//        {
-//            typeof(self) strongSelf = weakSelf;
-//            NSError *remoteImageError = error;
-//            PINImage *image = nil;
-//            id alternativeRepresentation = nil;
-//            
-//            if (remoteImageError == nil) {
-//                //stores the object in the caches
-//                [strongSelf materializeAndCacheObject:data cacheInDisk:data additionalCost:0 key:key options:options outImage:&image outAltRep:&alternativeRepresentation];
-//            }
-//            
-//            if (error == nil && image == nil && alternativeRepresentation == nil) {
-//                remoteImageError = [NSError errorWithDomain:PINRemoteImageManagerErrorDomain
-//                                                       code:PINRemoteImageManagerErrorFailedToDecodeImage
-//                                                   userInfo:nil];
-//            }
-//            
-//            [strongSelf callCompletionsWithKey:key image:image alternativeRepresentation:alternativeRepresentation cached:NO error:remoteImageError finalized:YES];
-//        }];
-//    }];
-//}
-
-
 - (NSURLRequest *)requestWithURL:(NSURL *)url key:(NSString *)key requestModifier:(PINRemoteImageManagerRequestModifier)requestModifier
 {
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url
