@@ -96,7 +96,7 @@
     BOOL hasResume = resume != nil;
     [self.lock lockWithBlock:^{
         if (hasResume) {
-            //consider skipping cancelation if there's a request for resume data and the time to start the connection is greater than
+            //consider skipping cancellation if there's a request for resume data and the time to start the connection is greater than
             //the time remaining to download.
             NSTimeInterval timeToFirstByte = [[PINSpeedRecorder sharedRecorder] weightedTimeToFirstByteForHost:self->_progressImage.dataTask.currentRequest.URL.host];
             if (self->_progressImage.estimatedRemainingTime <= timeToFirstByte) {
@@ -139,9 +139,10 @@
     [super setPriority:priority];
     if (@available(iOS 8.0, macOS 10.10, tvOS 9.0, watchOS 2.0, *)) {
         [self.lock lockWithBlock:^{
-            if (self->_progressImage.dataTask) {
-                self->_progressImage.dataTask.priority = dataTaskPriorityWithImageManagerPriority(priority);
-                [self.manager.urlSessionTaskQueue setQueuePriority:priority forTask:self->_progressImage.dataTask];
+            NSURLSessionDataTask *dataTask = self->_progressImage.dataTask;
+            if (dataTask) {
+                dataTask.priority = dataTaskPriorityWithImageManagerPriority(priority);
+                [self.manager.urlSessionTaskQueue setQueuePriority:priority forTask:dataTask];
             }
         }];
     }
@@ -349,10 +350,6 @@
                 }
             }];
         }]];
-        
-        if (@available(iOS 8.0, macOS 10.10, tvOS 9.0, watchOS 2.0, *)) {
-            self->_progressImage.dataTask.priority = dataTaskPriorityWithImageManagerPriority(priority);
-        }
     }];
 }
 

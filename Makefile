@@ -1,11 +1,11 @@
-PLATFORM="platform=iOS Simulator,name=iPhone 7"
+PLATFORM="platform=iOS Simulator,name=iPhone 8"
 SDK="iphonesimulator"
 SHELL=/bin/bash -o pipefail
 
-.PHONY: all lint test carthage analyze
+.PHONY: all webp cocoapods test carthage analyze
 
-lint:
-	pod lib lint --allow-warnings
+cocoapods:
+	pod lib lint
 	
 analyze:
 	xcodebuild clean analyze -destination ${PLATFORM} -sdk ${SDK} -project PINRemoteImage.xcodeproj -scheme PINRemoteImage \
@@ -23,6 +23,10 @@ test:
 	
 carthage:
 	carthage update --no-use-binaries --no-build
-	carthage build --no-skip-current
+	carthage build --no-use-binaries --no-skip-current
+
+webp:
+	carthage update --no-use-binaries --no-build
+	cd webp && ../Carthage/Checkouts/libwebp/iosbuild.sh
 	
-all: carthage test lint analyze
+all: carthage test cocoapods analyze

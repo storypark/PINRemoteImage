@@ -130,10 +130,11 @@ static NSString * const PINMemoryCacheSharedName = @"PINMemoryCacheSharedName";
 #pragma mark - Private Methods -
 
 - (void)didReceiveMemoryWarningNotification:(NSNotification *)notification {
-    if (self.removeAllObjectsOnMemoryWarning)
+    if (self.removeAllObjectsOnMemoryWarning) {
         [self removeAllObjectsAsync:nil];
-
-    [self removeExpiredObjects];
+    } else {
+        [self removeExpiredObjects];
+    }
 
     [self.operationQueue scheduleOperation:^{
         [self lock];
@@ -190,23 +191,19 @@ static NSString * const PINMemoryCacheSharedName = @"PINMemoryCacheSharedName";
 - (void)trimMemoryToDate:(NSDate *)trimDate
 {
     [self lock];
-        NSArray *keysSortedByCreatedDate = [_createdDates keysSortedByValueUsingSelector:@selector(compare:)];
         NSDictionary *createdDates = [_createdDates copy];
         NSDictionary *ageLimits = [_ageLimits copy];
     [self unlock];
     
-    for (NSString *key in keysSortedByCreatedDate) { // oldest objects first
-        NSDate *createdDate = createdDates[key];
+    [createdDates enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, NSDate * _Nonnull createdDate, BOOL * _Nonnull stop) {
         NSTimeInterval ageLimit = [ageLimits[key] doubleValue];
-        if (!createdDate || ageLimit > 0.0)
-            continue;
-        
+        if (!createdDate || ageLimit > 0.0) {
+            return;
+        }
         if ([createdDate compare:trimDate] == NSOrderedAscending) { // older than trim date
             [self removeObjectAndExecuteBlocksForKey:key];
-        } else {
-            break;
         }
-    }
+    }];
 }
 
 - (void)removeExpiredObjects
@@ -310,7 +307,7 @@ static NSString * const PINMemoryCacheSharedName = @"PINMemoryCacheSharedName";
         if (shouldReschedule) {
             [self.operationQueue scheduleOperation:^{
                 [self trimToAgeLimitRecursively];
-            } withPriority:PINOperationQueuePriorityHigh];
+            } withPriority:PINOperationQueuePriorityLow];
         }
     });
 }
@@ -374,7 +371,7 @@ static NSString * const PINMemoryCacheSharedName = @"PINMemoryCacheSharedName";
         
         if (block)
             block(self, key, nil);
-    } withPriority:PINOperationQueuePriorityHigh];
+    } withPriority:PINOperationQueuePriorityLow];
 }
 
 - (void)trimToDateAsync:(NSDate *)trimDate completion:(PINCacheBlock)block
@@ -384,7 +381,7 @@ static NSString * const PINMemoryCacheSharedName = @"PINMemoryCacheSharedName";
         
         if (block)
             block(self);
-    } withPriority:PINOperationQueuePriorityHigh];
+    } withPriority:PINOperationQueuePriorityLow];
 }
 
 - (void)trimToCostAsync:(NSUInteger)cost completion:(PINCacheBlock)block
@@ -394,7 +391,7 @@ static NSString * const PINMemoryCacheSharedName = @"PINMemoryCacheSharedName";
         
         if (block)
             block(self);
-    } withPriority:PINOperationQueuePriorityHigh];
+    } withPriority:PINOperationQueuePriorityLow];
 }
 
 - (void)trimToCostByDateAsync:(NSUInteger)cost completion:(PINCacheBlock)block
@@ -404,7 +401,7 @@ static NSString * const PINMemoryCacheSharedName = @"PINMemoryCacheSharedName";
         
         if (block)
             block(self);
-    } withPriority:PINOperationQueuePriorityHigh];
+    } withPriority:PINOperationQueuePriorityLow];
 }
 
 - (void)removeExpiredObjectsAsync:(PINCacheBlock)block
@@ -414,7 +411,7 @@ static NSString * const PINMemoryCacheSharedName = @"PINMemoryCacheSharedName";
 
         if (block)
             block(self);
-    } withPriority:PINOperationQueuePriorityHigh];
+    } withPriority:PINOperationQueuePriorityLow];
 }
 
 - (void)removeAllObjectsAsync:(PINCacheBlock)block
@@ -424,7 +421,7 @@ static NSString * const PINMemoryCacheSharedName = @"PINMemoryCacheSharedName";
         
         if (block)
             block(self);
-    } withPriority:PINOperationQueuePriorityHigh];
+    } withPriority:PINOperationQueuePriorityLow];
 }
 
 - (void)enumerateObjectsWithBlockAsync:(PINCacheObjectEnumerationBlock)block completionBlock:(PINCacheBlock)completionBlock
@@ -434,7 +431,7 @@ static NSString * const PINMemoryCacheSharedName = @"PINMemoryCacheSharedName";
         
         if (completionBlock)
             completionBlock(self);
-    } withPriority:PINOperationQueuePriorityHigh];
+    } withPriority:PINOperationQueuePriorityLow];
 }
 
 #pragma mark - Public Synchronous Methods -
@@ -836,42 +833,74 @@ static NSString * const PINMemoryCacheSharedName = @"PINMemoryCacheSharedName";
 
 - (void)objectForKey:(NSString *)key block:(nullable PINMemoryCacheObjectBlock)block
 {
-    [self objectForKeyAsync:key completion:block];
+    [self objectForKeyAsync:key completion:^(id<PINCaching> memoryCache, NSString *memoryCacheKey, id memoryCacheObject) {
+        if (block) {
+            block((PINMemoryCache *)memoryCache, memoryCacheKey, memoryCacheObject);
+        }
+    }];
 }
 
 - (void)setObject:(id)object forKey:(NSString *)key block:(nullable PINMemoryCacheObjectBlock)block
 {
-    [self setObjectAsync:object forKey:key completion:block];
+    [self setObjectAsync:object forKey:key completion:^(id<PINCaching> memoryCache, NSString *memoryCacheKey, id memoryCacheObject) {
+        if (block) {
+            block((PINMemoryCache *)memoryCache, memoryCacheKey, memoryCacheObject);
+        }
+    }];
 }
 
 - (void)setObject:(id)object forKey:(NSString *)key withCost:(NSUInteger)cost block:(nullable PINMemoryCacheObjectBlock)block
 {
-    [self setObjectAsync:object forKey:key withCost:cost completion:block];
+    [self setObjectAsync:object forKey:key withCost:cost completion:^(id<PINCaching> memoryCache, NSString *memoryCacheKey, id memoryCacheObject) {
+        if (block) {
+            block((PINMemoryCache *)memoryCache, memoryCacheKey, memoryCacheObject);
+        }
+    }];
 }
 
 - (void)removeObjectForKey:(NSString *)key block:(nullable PINMemoryCacheObjectBlock)block
 {
-    [self removeObjectForKeyAsync:key completion:block];
+    [self removeObjectForKeyAsync:key completion:^(id<PINCaching> memoryCache, NSString *memoryCacheKey, id memoryCacheObject) {
+        if (block) {
+            block((PINMemoryCache *)memoryCache, memoryCacheKey, memoryCacheObject);
+        }
+    }];
 }
 
 - (void)trimToDate:(NSDate *)date block:(nullable PINMemoryCacheBlock)block
 {
-    [self trimToDateAsync:date completion:block];
+    [self trimToDateAsync:date completion:^(id<PINCaching> memoryCache) {
+        if (block) {
+            block((PINMemoryCache *)memoryCache);
+        }
+    }];
 }
 
 - (void)trimToCost:(NSUInteger)cost block:(nullable PINMemoryCacheBlock)block
 {
-    [self trimToCostAsync:cost completion:block];
+    [self trimToCostAsync:cost completion:^(id<PINCaching> memoryCache) {
+        if (block) {
+            block((PINMemoryCache *)memoryCache);
+        }
+    }];
 }
 
 - (void)trimToCostByDate:(NSUInteger)cost block:(nullable PINMemoryCacheBlock)block
 {
-    [self trimToCostByDateAsync:cost completion:block];
+    [self trimToCostByDateAsync:cost completion:^(id<PINCaching> memoryCache) {
+        if (block) {
+            block((PINMemoryCache *)memoryCache);
+        }
+    }];
 }
 
 - (void)removeAllObjects:(nullable PINMemoryCacheBlock)block
 {
-    [self removeAllObjectsAsync:block];
+    [self removeAllObjectsAsync:^(id<PINCaching> memoryCache) {
+        if (block) {
+            block((PINMemoryCache *)memoryCache);
+        }
+    }];
 }
 
 - (void)enumerateObjectsWithBlock:(PINMemoryCacheObjectBlock)block completionBlock:(nullable PINMemoryCacheBlock)completionBlock
@@ -881,7 +910,11 @@ static NSString * const PINMemoryCacheSharedName = @"PINMemoryCacheSharedName";
             PINMemoryCache *memoryCache = (PINMemoryCache *)cache;
             block(memoryCache, key, object);
         }
-    } completionBlock:completionBlock];
+    } completionBlock:^(id<PINCaching> memoryCache) {
+        if (completionBlock) {
+            completionBlock((PINMemoryCache *)memoryCache);
+        }
+    }];
 }
 
 - (void)setTtlCache:(BOOL)ttlCache

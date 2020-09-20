@@ -24,6 +24,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
 @property (strong, nonatomic) NSDictionary *metadata;
 
 + (dispatch_queue_t)sharedTrashQueue;
++ (NSURL *)sharedTrashURL;
 - (NSString *)encodedString:(NSString *)string;
 
 @end
@@ -114,14 +115,8 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
 
 - (void)testDiskCacheURL
 {
-    // Wait for URL to be created
-    dispatch_group_t group = dispatch_group_create();
-    dispatch_group_enter(group);
-    [self.cache objectForKeyAsync:@"" completion:^(PINCache * _Nonnull cache, NSString * _Nonnull key, id  _Nullable object) {
-      dispatch_group_leave(group);
-    }];
-
-    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+    // Wait for URL to be created. We use enumerateObjectsWithBlock because it waits for a known disk state.
+    [self.cache.diskCache enumerateObjectsWithBlock:^(NSString * _Nonnull key, NSURL * _Nullable fileURL, BOOL * _Nonnull stop) {}];
     BOOL isDir = NO;
     BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:[self.cache.diskCache.cacheURL path] isDirectory:&isDir];
 
@@ -135,7 +130,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     __block PINImage *image = nil;
     dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
     
-    [self.cache setObjectAsync:[self image] forKey:key completion:^(PINCache *cache, NSString *key, id object) {
+    [self.cache setObjectAsync:[self image] forKey:key completion:^(id<PINCaching> cache, NSString *key, id object) {
         image = (PINImage *)object;
         dispatch_semaphore_signal(semaphore);
     }];
@@ -153,7 +148,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     PINImage *srcImage = [self image];
     NSUInteger cost = (NSUInteger)(srcImage.size.width * srcImage.size.height);
     
-    [self.cache setObjectAsync:srcImage forKey:key withCost:cost completion:^(PINCache *cache, NSString *key, id object) {
+    [self.cache setObjectAsync:srcImage forKey:key withCost:cost completion:^(id<PINCaching> cache, NSString *key, id object) {
         image = (PINImage *)object;
         dispatch_semaphore_signal(semaphore);
     }];
@@ -175,7 +170,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     [self.cache setObject:value1 forKey:key];
     [self.cache setObject:value2 forKey:key];
     
-    [self.cache objectForKeyAsync:key completion:^(PINCache *cache, NSString *key, id object) {
+    [self.cache objectForKeyAsync:key completion:^(id<PINCaching> cache, NSString *key, id object) {
         cachedValue = (NSString *)object;
         dispatch_semaphore_signal(semaphore);
     }];
@@ -238,7 +233,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     
     self.cache[key] = [self image];
     
-    [self.cache objectForKeyAsync:key completion:^(PINCache *cache, NSString *key, id object) {
+    [self.cache objectForKeyAsync:key completion:^(id<PINCaching> cache, NSString *key, id object) {
         image = (PINImage *)object;
         dispatch_semaphore_signal(semaphore);
     }];
@@ -257,7 +252,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
 
     self.cache[key] = [self image];
 
-    [self.cache objectForKeyAsync:invalidKey completion:^(PINCache *cache, NSString *key, id object) {
+    [self.cache objectForKeyAsync:invalidKey completion:^(id<PINCaching> cache, NSString *key, id object) {
         image = (PINImage *)object;
         dispatch_semaphore_signal(semaphore);
     }];
@@ -273,16 +268,28 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
     
     self.cache[key] = [self image];
-    
-    [self.cache removeObjectForKeyAsync:key completion:^(PINCache *cache, NSString *key, id object) {
+
+    __block BOOL willRemoveObjectBlockCalled = NO;
+    self.cache.diskCache.willRemoveObjectBlock = ^(PINDiskCache * _Nonnull cache, NSString * _Nonnull key, id<NSCoding> _Nullable object) {
+        willRemoveObjectBlockCalled = YES;
+    };
+
+    __block BOOL didRemoveObjectBlockCalled = NO;
+    self.cache.diskCache.didRemoveObjectBlock = ^(PINDiskCache * _Nonnull cache, NSString * _Nonnull key, id<NSCoding> _Nullable object) {
+        didRemoveObjectBlockCalled = YES;
+    };
+
+    [self.cache removeObjectForKeyAsync:key completion:^(id<PINCaching> cache, NSString *key, id object) {
         dispatch_semaphore_signal(semaphore);
     }];
     
     dispatch_semaphore_wait(semaphore, [self timeout]);
     
     id object = self.cache[key];
-    
+
     XCTAssertNil(object, @"object was not removed");
+    XCTAssertTrue(willRemoveObjectBlockCalled, @"willRemoveObjectBlock was not called");
+    XCTAssertTrue(didRemoveObjectBlockCalled, @"didRemoveObjectBlock was not called");
 }
 
 - (void)testObjectRemoveAll
@@ -293,8 +300,18 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     
     self.cache[key1] = key1;
     self.cache[key2] = key2;
-    
-    [self.cache removeAllObjectsAsync:^(PINCache *cache) {
+
+    __block BOOL willRemoveAllObjectsBlockCalled = NO;
+    self.cache.diskCache.willRemoveAllObjectsBlock = ^(id<PINCaching> _Nonnull cache) {
+        willRemoveAllObjectsBlockCalled = YES;
+    };
+
+    __block BOOL didRemoveAllObjectsBlockCalled = NO;
+    self.cache.diskCache.didRemoveAllObjectsBlock = ^(id<PINCaching> _Nonnull cache) {
+        didRemoveAllObjectsBlockCalled = YES;
+    };
+
+    [self.cache removeAllObjectsAsync:^(id<PINCaching> cache) {
         dispatch_semaphore_signal(semaphore);
     }];
     
@@ -305,6 +322,8 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     
     XCTAssertNil(object1, @"not all objects were removed");
     XCTAssertNil(object2, @"not all objects were removed");
+    XCTAssertTrue(willRemoveAllObjectsBlockCalled, @"willRemoveAllObjectsBlock was not called");
+    XCTAssertTrue(didRemoveAllObjectsBlockCalled, @"didRemoveAllObjectsBlock was not called");
     XCTAssertTrue(self.cache.memoryCache.totalCost == 0, @"memory cache cost was not 0 after removing all objects");
     XCTAssertTrue(self.cache.diskByteCount == 0, @"disk cache byte count was not 0 after removing all objects");
 }
@@ -486,9 +505,9 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-retain-cycles"
         dispatch_group_enter(group);
-        [self.cache setObjectAsync:obj forKey:key completion:^(PINCache * _Nonnull cache, NSString * _Nonnull key, id  _Nullable object) {
+        [self.cache setObjectAsync:obj forKey:key completion:^(id<PINCaching> _Nonnull cache, NSString * _Nonnull key, id  _Nullable object) {
             dispatch_async(queue, ^{
-                [self.cache objectForKeyAsync:key completion:^(PINCache * _Nonnull cache, NSString * _Nonnull key, id  _Nullable object) {
+                [self.cache objectForKeyAsync:key completion:^(id<PINCaching> _Nonnull cache, NSString * _Nonnull key, id  _Nullable object) {
                     NSString *obj = [[NSString alloc] initWithFormat:@"obj %lu", (unsigned long)i];
                     XCTAssertTrue([object isEqualToString:obj] == YES, @"object returned was not object set");
                     @synchronized (self) {
@@ -516,7 +535,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
 
     __block BOOL blockDidExecute = NO;
 
-    self.cache.memoryCache.didReceiveMemoryWarningBlock = ^(PINMemoryCache *cache) {
+    self.cache.memoryCache.didReceiveMemoryWarningBlock = ^(id<PINCaching> cache) {
         blockDidExecute = YES;
         dispatch_semaphore_signal(semaphore);
     };
@@ -535,7 +554,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
 
     __block BOOL blockDidExecute = NO;
 
-    self.cache.memoryCache.didEnterBackgroundBlock = ^(PINMemoryCache *cache) {
+    self.cache.memoryCache.didEnterBackgroundBlock = ^(id<PINCaching> cache) {
         blockDidExecute = YES;
         dispatch_semaphore_signal(semaphore);
     };
@@ -572,8 +591,8 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
 
     __block id object = nil;
     
-    self.cache.memoryCache.didReceiveMemoryWarningBlock = ^(PINMemoryCache *cache) {
-        object = cache[@"object"];
+    self.cache.memoryCache.didReceiveMemoryWarningBlock = ^(id<PINCaching> cache) {
+        object = [cache objectForKey:@"object"];
         dispatch_semaphore_signal(semaphore);
     };
 
@@ -601,12 +620,13 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
 
     __block NSUInteger enumCount = 0;
 
-    self.cache.memoryCache.didReceiveMemoryWarningBlock = ^(PINMemoryCache *cache) {
-        [cache enumerateObjectsWithBlockAsync:^(PINMemoryCache *cache, NSString *key, id object, BOOL *stop) {
+    self.cache.memoryCache.didReceiveMemoryWarningBlock = ^(id<PINCaching> cache) {
+        PINMemoryCache *memoryCache = (PINMemoryCache *)cache;
+        [memoryCache enumerateObjectsWithBlockAsync:^(id<PINCaching> cache, NSString *key, id object, BOOL *stop) {
             @synchronized (self) {
                 enumCount++;
             }
-        } completionBlock:^(PINMemoryCache *cache) {
+        } completionBlock:^(id<PINCaching> cache) {
             dispatch_semaphore_signal(semaphore);
         }];
     };
@@ -646,7 +666,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
         @synchronized (self) {
             enumCount++;
         }
-    } completionBlock:^(PINDiskCache *cache) {
+    } completionBlock:^(id<PINCaching> cache) {
         dispatch_semaphore_signal(semaphore);
     }];
 
@@ -703,25 +723,25 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     __block id diskObj2 = nil;
     
     dispatch_group_enter(group);
-    [self.cache.memoryCache objectForKeyAsync:key1 completion:^(PINMemoryCache *cache, NSString *key, id object) {
+    [self.cache.memoryCache objectForKeyAsync:key1 completion:^(id<PINCaching> cache, NSString *key, id object) {
         memObj1 = object;
         dispatch_group_leave(group);
     }];
     
     dispatch_group_enter(group);
-    [self.cache.memoryCache objectForKeyAsync:key2 completion:^(PINMemoryCache *cache, NSString *key, id object) {
+    [self.cache.memoryCache objectForKeyAsync:key2 completion:^(id<PINCaching> cache, NSString *key, id object) {
         memObj2 = object;
         dispatch_group_leave(group);
     }];
     
     dispatch_group_enter(group);
-    [self.cache.diskCache objectForKeyAsync:key1 completion:^(PINDiskCache *cache, NSString *key, id<NSCoding> object) {
+    [self.cache.diskCache objectForKeyAsync:key1 completion:^(id<PINCaching> cache, NSString *key, id<NSCoding> object) {
         diskObj1 = object;
         dispatch_group_leave(group);
     }];
     
     dispatch_group_enter(group);
-    [self.cache.diskCache objectForKeyAsync:key2 completion:^(PINDiskCache *cache, NSString *key, id<NSCoding> object) {
+    [self.cache.diskCache objectForKeyAsync:key2 completion:^(id<PINCaching> cache, NSString *key, id<NSCoding> object) {
         diskObj2 = object;
         dispatch_group_leave(group);
     }];
@@ -746,19 +766,19 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     sleep(1);
     
     dispatch_group_enter(group);
-    [self.cache.memoryCache objectForKeyAsync:key1 completion:^(PINMemoryCache *cache, NSString *key, id object) {
+    [self.cache.memoryCache objectForKeyAsync:key1 completion:^(id<PINCaching> cache, NSString *key, id object) {
         memObj1 = object;
         dispatch_group_leave(group);
     }];
     
     dispatch_group_enter(group);
-    [self.cache.memoryCache objectForKeyAsync:key2 completion:^(PINMemoryCache *cache, NSString *key, id object) {
+    [self.cache.memoryCache objectForKeyAsync:key2 completion:^(id<PINCaching> cache, NSString *key, id object) {
         memObj2 = object;
         dispatch_group_leave(group);
     }];
     
     dispatch_group_enter(group);
-    [self.cache.diskCache objectForKeyAsync:key1 completion:^(PINDiskCache *cache, NSString *key, id<NSCoding> object) {
+    [self.cache.diskCache objectForKeyAsync:key1 completion:^(id<PINCaching> cache, NSString *key, id<NSCoding> object) {
         diskObj1 = object;
         dispatch_group_leave(group);
     }];
@@ -814,8 +834,8 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     PINDiskCache *diskCache = [[PINDiskCache alloc] initWithName:cacheName];
     [diskCache removeAllObjects];
     
-    // store a bunch of objects
-    for (NSUInteger idx = 0; idx < 1000; idx++) {
+    // Store a bunch of objects so it will take a long time to initialize.
+    for (NSUInteger idx = 0; idx < 5000; idx++) {
         NSData *tmpData = [[@(idx) stringValue] dataUsingEncoding:NSUTF8StringEncoding];
         [diskCache setObject:tmpData forKey:[@(idx) stringValue]];
     }
@@ -825,7 +845,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     diskCache = [[PINDiskCache alloc] initWithName:cacheName];
     
     // Check to see if we can get an object before the disk state is known.
-    XCTAssertNotNil([diskCache objectForKey:[@(999) stringValue]]);
+    XCTAssertNotNil([diskCache objectForKey:[@(1) stringValue]]);
     XCTAssertFalse(diskCache.diskStateKnown);
     
     sleep(5);
@@ -883,13 +903,13 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     __block id diskObj = nil;
 
     dispatch_group_enter(group);
-    [self.cache.memoryCache objectForKeyAsync:key completion:^(PINMemoryCache *cache, NSString *key, id object) {
+    [self.cache.memoryCache objectForKeyAsync:key completion:^(id<PINCaching> cache, NSString *key, id object) {
         memObj = object;
         dispatch_group_leave(group);
     }];
 
     dispatch_group_enter(group);
-    [self.cache.diskCache objectForKeyAsync:key completion:^(PINDiskCache *cache, NSString *key, id<NSCoding> object) {
+    [self.cache.diskCache objectForKeyAsync:key completion:^(id<PINCaching> cache, NSString *key, id<NSCoding> object) {
         diskObj = object;
         dispatch_group_leave(group);
     }];
@@ -907,13 +927,13 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     diskObj = nil;
 
     dispatch_group_enter(group);
-    [self.cache.memoryCache objectForKeyAsync:key completion:^(PINMemoryCache *cache, NSString *key, id object) {
+    [self.cache.memoryCache objectForKeyAsync:key completion:^(id<PINCaching> cache, NSString *key, id object) {
         memObj = object;
         dispatch_group_leave(group);
     }];
 
     dispatch_group_enter(group);
-    [self.cache.diskCache objectForKeyAsync:key completion:^(PINDiskCache *cache, NSString *key, id<NSCoding> object) {
+    [self.cache.diskCache objectForKeyAsync:key completion:^(id<PINCaching> cache, NSString *key, id<NSCoding> object) {
         diskObj = object;
         dispatch_group_leave(group);
     }];
@@ -960,7 +980,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     XCTAssertEqual(objCount, expectedObjCount, @"Expected %lu objects in the cache", (unsigned long)expectedObjCount);
 
     objCount = 0;
-    [self.cache.memoryCache enumerateObjectsWithBlock:^(PINMemoryCache *cache, NSString *key, id _Nullable object, BOOL *stop) {
+    [self.cache.memoryCache enumerateObjectsWithBlock:^(id<PINCaching> cache, NSString *key, id _Nullable object, BOOL *stop) {
       objCount++;
     }];
 
@@ -986,7 +1006,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     XCTAssertEqual(objCount, expectedObjCount, @"Expected %lu objects in the cache", (unsigned long)expectedObjCount);
 
     objCount = 0;
-    [self.cache.memoryCache enumerateObjectsWithBlock:^(PINMemoryCache * _Nonnull cache, NSString * _Nonnull key, id  _Nullable object, BOOL *stop) {
+    [self.cache.memoryCache enumerateObjectsWithBlock:^(id<PINCaching> _Nonnull cache, NSString * _Nonnull key, id  _Nullable object, BOOL *stop) {
       objCount++;
     }];
 
@@ -1070,13 +1090,13 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     // Neither object should be expired at this point and should exist in both caches
 
     XCTestExpectation *memObjectForKey1Expectation = [self expectationWithDescription:@"memoryCache objectForKeyAsync - #1"];
-    [self.cache.memoryCache objectForKeyAsync:key1 completion:^(PINMemoryCache *cache, NSString *key, id object) {
+    [self.cache.memoryCache objectForKeyAsync:key1 completion:^(id<PINCaching> cache, NSString *key, id object) {
         XCTAssertNotNil(object, @"should still be in memory cache");
         [memObjectForKey1Expectation fulfill];
     }];
 
     XCTestExpectation *memObjectForKey2Expectation = [self expectationWithDescription:@"memoryCache objectForKeyAsync - #2"];
-    [self.cache.memoryCache objectForKeyAsync:key2 completion:^(PINMemoryCache *cache, NSString *key, id object) {
+    [self.cache.memoryCache objectForKeyAsync:key2 completion:^(id<PINCaching> cache, NSString *key, id object) {
         XCTAssertNotNil(object, @"should still be in memory cache");
         [memObjectForKey2Expectation fulfill];
     }];
@@ -1101,13 +1121,13 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     // The first object has been expired for 30 seconds and should not exist in the cache anymore.
 
     memObjectForKey1Expectation = [self expectationWithDescription:@"memoryCache objectForKeyAsync - #1"];
-    [self.cache.memoryCache objectForKeyAsync:key1 completion:^(PINMemoryCache *cache, NSString *key, id object) {
+    [self.cache.memoryCache objectForKeyAsync:key1 completion:^(id<PINCaching> cache, NSString *key, id object) {
         XCTAssertNil(object, @"should not be in memory cache");
         [memObjectForKey1Expectation fulfill];
     }];
 
     memObjectForKey2Expectation = [self expectationWithDescription:@"memoryCache objectForKeyAsync - #2"];
-    [self.cache.memoryCache objectForKeyAsync:key2 completion:^(PINMemoryCache *cache, NSString *key, id object) {
+    [self.cache.memoryCache objectForKeyAsync:key2 completion:^(id<PINCaching> cache, NSString *key, id object) {
         XCTAssertNotNil(object, @"should not be in memory cache");
         [memObjectForKey2Expectation fulfill];
     }];
@@ -1143,7 +1163,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     // Neither object should be expired at this point and should exist in both caches
 
     __block NSUInteger objCount = 0;
-    [self.cache.memoryCache enumerateObjectsWithBlock:^(PINMemoryCache *cache, NSString *key, id _Nullable object, BOOL *stop) {
+    [self.cache.memoryCache enumerateObjectsWithBlock:^(id<PINCaching> cache, NSString *key, id _Nullable object, BOOL *stop) {
         objCount++;
     }];
     XCTAssertEqual(objCount, 2, @"Expected 2 objects, got %tu.", objCount);
@@ -1160,7 +1180,7 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     // The first object has been expired for 30 seconds and should not exist in the cache anymore.
 
     objCount = 0;
-    [self.cache.memoryCache enumerateObjectsWithBlock:^(PINMemoryCache *cache, NSString *key, id _Nullable object, BOOL *stop) {
+    [self.cache.memoryCache enumerateObjectsWithBlock:^(id<PINCaching> cache, NSString *key, id _Nullable object, BOOL *stop) {
         objCount++;
     }];
     XCTAssertEqual(objCount, 1, @"Expected 1 object, got %tu.", objCount);
@@ -1196,13 +1216,13 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     [NSDate stopMockingDate];
 
     XCTestExpectation *memObjectForKey1Expectation = [self expectationWithDescription:@"memoryCache objectForKeyAsync - #1"];
-    [self.cache.memoryCache objectForKeyAsync:key1 completion:^(PINMemoryCache *cache, NSString *key, id object) {
+    [self.cache.memoryCache objectForKeyAsync:key1 completion:^(id<PINCaching> cache, NSString *key, id object) {
         XCTAssertNil(object, @"should not be in memory cache");
         [memObjectForKey1Expectation fulfill];
     }];
 
     XCTestExpectation *memObjectForKey2Expectation = [self expectationWithDescription:@"memoryCache objectForKeyAsync - #2"];
-    [self.cache.memoryCache objectForKeyAsync:key2 completion:^(PINMemoryCache *cache, NSString *key, id object) {
+    [self.cache.memoryCache objectForKeyAsync:key2 completion:^(id<PINCaching> cache, NSString *key, id object) {
         XCTAssertNotNil(object, @"should not be in memory cache");
         [memObjectForKey2Expectation fulfill];
     }];
@@ -1241,6 +1261,9 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     testCache = [[PINDiskCache alloc] initWithName:cacheName];
     [testCache setTtlCacheSync:YES];
     [testCache setObject:[self image] forKey:key withAgeLimit:ageLimit];
+  
+    // The age limit is set asynchronously, *even* when we set the object synchronously.
+    sleep(1);
 
     // Re-initialize the cache, this should read the age limit for the object from the extended file system attributes.
     testCache = [[PINDiskCache alloc] initWithName:cacheName];
@@ -1311,12 +1334,12 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
 {
     const NSUInteger fileCount = 100;
     NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSString *tempDirPath = NSTemporaryDirectory();
+    NSString *trashPath = [[PINDiskCache sharedTrashURL] path];
     
     dispatch_group_t group = dispatch_group_create();
     
     NSError *error = nil;
-    unsigned long long originalTempDirSize = [[fileManager attributesOfItemAtPath:tempDirPath error:&error] fileSize];
+    unsigned long long originalTempDirSize = [[fileManager attributesOfItemAtPath:trashPath error:&error] fileSize];
     XCTAssertNil(error);
     
     for (int i = 0; i < fileCount; i++) {
@@ -1325,20 +1348,17 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     }
     
     dispatch_group_enter(group);
-    [self.cache.diskCache removeAllObjectsAsync:^(PINDiskCache * _Nonnull cache) {
+    [self.cache.diskCache removeAllObjectsAsync:^(id<PINCaching>  _Nonnull cache) {
         // Temporary directory should be bigger now since the trash directory is still inside it
         NSError *error = nil;
-        unsigned long long tempDirSize = [[fileManager attributesOfItemAtPath:tempDirPath error:&error] fileSize];
+        unsigned long long tempDirSize = [[fileManager attributesOfItemAtPath:trashPath error:&error] fileSize];
         XCTAssertNil(error);
         XCTAssertLessThan(originalTempDirSize, tempDirSize);
         
-        // Temporary directory should get back to its original size at the end of the trash queue
+        // Temporary directory should be gone at the end of the trash queue.
         dispatch_group_enter(group);
         dispatch_async([PINDiskCache sharedTrashQueue], ^{
-            NSError *error = nil;
-            unsigned long long tempDirSize = [[fileManager attributesOfItemAtPath:tempDirPath error:&error] fileSize];
-            XCTAssertNil(error);
-            XCTAssertEqual(originalTempDirSize, tempDirSize);
+            XCTAssertFalse([fileManager fileExistsAtPath:trashPath isDirectory:NULL]);
             dispatch_group_leave(group);
         });
         
@@ -1373,6 +1393,12 @@ const NSTimeInterval PINCacheTestBlockTimeout = 20.0;
     NSString *encodedKey = [[testCache fileURLForKey:@"test_key"] lastPathComponent];
     XCTAssertEqualObjects(@"test_key", encodedKey, @"Encoded key should be equal to decoded one");
 
+}
+
+- (void)testTTLCacheIsSet {
+    PINCache *cache = [[PINCache alloc] initWithName:@"test" rootPath:PINDiskCachePrefix serializer:nil deserializer:nil keyEncoder:nil keyDecoder:nil ttlCache:YES];
+    XCTAssert(cache.diskCache.isTTLCache);
+    XCTAssert(cache.memoryCache.isTTLCache);
 }
 
 @end

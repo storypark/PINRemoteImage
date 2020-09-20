@@ -48,10 +48,23 @@ NSErrorDomain const PINURLErrorDomain = @"PINURLErrorDomain";
     [self unlock];
 }
 
-- (nonnull NSURLSessionDataTask *)dataTaskWithRequest:(nonnull NSURLRequest *)request completionHandler:(nonnull PINURLSessionDataTaskCompletion)completionHandler
+- (nonnull NSURLSessionDataTask *)dataTaskWithRequest:(nonnull NSURLRequest *)request
+                                    completionHandler:(nonnull PINURLSessionDataTaskCompletion)completionHandler 
+{
+    return [self dataTaskWithRequest:request 
+                            priority:PINRemoteImageManagerPriorityDefault
+                   completionHandler:completionHandler];
+}
+
+- (nonnull NSURLSessionDataTask *)dataTaskWithRequest:(nonnull NSURLRequest *)request
+                                             priority:(PINRemoteImageManagerPriority)priority
+                                    completionHandler:(nonnull PINURLSessionDataTaskCompletion)completionHandler
 {
     [self lock];
         NSURLSessionDataTask *dataTask = [self.session dataTaskWithRequest:request];
+        if (@available(iOS 8.0, macOS 10.10, tvOS 9.0, watchOS 2.0, *)) {
+            dataTask.priority = dataTaskPriorityWithImageManagerPriority(priority);
+        }
         if (completionHandler) {
             [self.completions setObject:completionHandler forKey:@(dataTask.taskIdentifier)];
         }
@@ -187,6 +200,10 @@ NSErrorDomain const PINURLErrorDomain = @"PINURLErrorDomain";
         
         if (completionHandler) {
             completionHandler(task, error);
+        }
+        
+        if ([strongSelf.delegate respondsToSelector:@selector(didCompleteTask:withError:)]) {
+            [strongSelf.delegate didCompleteTask:task withError:error];
         }
     });
 }

@@ -65,6 +65,23 @@
     [PINRemoteImageCategoryManager setImageOnView:self fromURLs:urls placeholderImage:placeholderImage completion:completion];
 }
 
+- (void)pin_setImageFromURL:(nullable NSURL *)url
+           placeholderImage:(nullable UIImage *)placeholderImage
+               processorKey:(nullable NSString *)processorKey
+            requestModifier:(nullable PINRemoteImageManagerRequestModifier)requestModifier
+                  processor:(nullable PINRemoteImageManagerImageProcessor)processor
+                 completion:(nullable PINRemoteImageManagerImageCompletion)completion
+{
+    [PINRemoteImageCategoryManager setImageOnView:self
+                                         fromURLs:@[url]
+                                 placeholderImage:placeholderImage
+                                     processorKey:processorKey
+                                  requestModifier:requestModifier
+                                        processor:processor
+                                       completion:completion];
+}
+
+
 - (void)pin_cancelImageDownload
 {
     [PINRemoteImageCategoryManager cancelImageDownloadOnView:self];

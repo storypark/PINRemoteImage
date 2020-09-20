@@ -73,7 +73,7 @@ static NSString * const PINCacheSharedName = @"PINCacheShared";
                                              keyDecoder:keyDecoder
                                          operationQueue:_operationQueue
                                                ttlCache:ttlCache];
-        _memoryCache = [[PINMemoryCache alloc] initWithOperationQueue:_operationQueue];
+        _memoryCache = [[PINMemoryCache alloc] initWithName:_name operationQueue:_operationQueue ttlCache:ttlCache];
     }
     return self;
 }
@@ -118,7 +118,7 @@ static NSString * const PINCacheSharedName = @"PINCacheShared";
         return;
     
     [self.operationQueue scheduleOperation:^{
-        [self->_memoryCache objectForKeyAsync:key completion:^(PINMemoryCache *memoryCache, NSString *memoryCacheKey, id memoryCacheObject) {
+        [self->_memoryCache objectForKeyAsync:key completion:^(id<PINCaching> memoryCache, NSString *memoryCacheKey, id memoryCacheObject) {
             if (memoryCacheObject) {
                 // Update file modification date. TODO: make this a separate method?
                 [self->_diskCache fileURLForKeyAsync:memoryCacheKey completion:^(NSString * _Nonnull key, NSURL * _Nullable fileURL) {}];
@@ -271,8 +271,8 @@ static NSString * const PINCacheSharedName = @"PINCacheShared";
 {
     __block NSUInteger byteCount = 0;
     
-    [_diskCache synchronouslyLockFileAccessWhileExecutingBlock:^(PINDiskCache *diskCache) {
-        byteCount = diskCache.byteCount;
+    [_diskCache synchronouslyLockFileAccessWhileExecutingBlock:^(id<PINCaching> diskCache) {
+        byteCount = ((PINDiskCache *)diskCache).byteCount;
     }];
     
     return byteCount;

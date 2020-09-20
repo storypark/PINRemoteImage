@@ -270,6 +270,7 @@
     if (urls.count > 1) {
         downloadImageOperationUUID = [[PINRemoteImageManager sharedImageManager] downloadImageWithURLs:urls
                                                                                                options:options
+                                                                                       requestModifier:requestModifier
                                                                                          progressImage:internalProgress
                                                                                             completion:internalCompletion];
     } else if (processorKey.length > 0 && processor) {

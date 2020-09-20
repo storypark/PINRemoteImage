@@ -1,7 +1,46 @@
-## master
-* Add your own contributions to the next release on the line below this with your name.
-- [new] Respect Cache-Control and Expires headers if the cache supports TTL [#462](https://github.com/pinterest/PINRemoteImage/pull/462) [wiseoldduck](https://github.com/wiseoldduck)
-- [new] Updated to latest PINCache beta 7. [wiseoldduck](https://github.com/wiseoldduck)
+## [3.0.1](https://github.com/Pinterest/PINRemoteImage/tree/3.0.1) (2020-09-08)
+
+[Full Changelog](https://github.com/Pinterest/PINRemoteImage/compare/3.0.0...3.0.1)
+
+**Merged pull requests:**
+
+- Update PINCache in podspec [\#564](https://github.com/pinterest/PINRemoteImage/pull/564) ([garrettmoon](https://github.com/garrettmoon))
+- Update PINCache and PINOperation [\#562](https://github.com/pinterest/PINRemoteImage/pull/562) ([garrettmoon](https://github.com/garrettmoon))
+- Let's use the same commands we use locally. [\#561](https://github.com/pinterest/PINRemoteImage/pull/561) ([garrettmoon](https://github.com/garrettmoon))
+- Ensure the example defines the macros before referencing them. [\#557](https://github.com/pinterest/PINRemoteImage/pull/557) ([bolsinga](https://github.com/bolsinga))
+- Remove the PCH file and ensure macros are defined before using [\#556](https://github.com/pinterest/PINRemoteImage/pull/556) ([bolsinga](https://github.com/bolsinga))
+- Seems that having the framework and example have the same name confuses cocoapods [\#555](https://github.com/pinterest/PINRemoteImage/pull/555) ([garrettmoon](https://github.com/garrettmoon))
+- Upgrade WebP to 1.1.0 [\#554](https://github.com/pinterest/PINRemoteImage/pull/554) ([garrettmoon](https://github.com/garrettmoon))
+- Conditionally call CADisplayLink method based upon iOS10 availability to remove deprecation warning [\#552](https://github.com/pinterest/PINRemoteImage/pull/552) ([bolsinga](https://github.com/bolsinga))
+- Fix typos [\#548](https://github.com/pinterest/PINRemoteImage/pull/548) ([pgrimaud](https://github.com/pgrimaud))
+- Remove unused CI directory [\#547](https://github.com/pinterest/PINRemoteImage/pull/547) ([jparise](https://github.com/jparise))
+- PINCachedAnimatedImage: Fix retain cycles [\#546](https://github.com/pinterest/PINRemoteImage/pull/546) ([bolsinga](https://github.com/bolsinga))
+- Fix up analyze for new github CI [\#545](https://github.com/pinterest/PINRemoteImage/pull/545) ([garrettmoon](https://github.com/garrettmoon))
+- Switch to GitHub Actions for CI [\#544](https://github.com/pinterest/PINRemoteImage/pull/544) ([jparise](https://github.com/jparise))
+- \#trivial Fix performance issue caused by saving encoded image data to memory cache [\#539](https://github.com/pinterest/PINRemoteImage/pull/539) ([Naituw](https://github.com/Naituw))
+- Update 3.0.0 change log and podspec [\#537](https://github.com/pinterest/PINRemoteImage/pull/537) ([ernestmama](https://github.com/ernestmama))
+- Fix memory cache content in README [\#530](https://github.com/pinterest/PINRemoteImage/pull/530) ([OhKanghoon](https://github.com/OhKanghoon))
+-  Refactor remote manager task for uuid method [\#526](https://github.com/pinterest/PINRemoteImage/pull/526) ([zhongwuzw](https://github.com/zhongwuzw))
+- Burst Animated Image speed of frame index search [\#523](https://github.com/pinterest/PINRemoteImage/pull/523) ([zhongwuzw](https://github.com/zhongwuzw))
+- Set HTTPMaximumConnectionsPerHost to PINRemoteImageHTTPMaximumConnectionsPerHost only if user don't provide sessionConfiguration [\#516](https://github.com/pinterest/PINRemoteImage/pull/516) ([zhongwuzw](https://github.com/zhongwuzw))
+- Fixes re-downloading data corrupt for the same url [\#514](https://github.com/pinterest/PINRemoteImage/pull/514) ([zhongwuzw](https://github.com/zhongwuzw))
+
+## 3.0.0 -- 2020 Jan 06
+- [new] Add PINRemoteImageManagerConfiguration configuration object. [#492](https://github.com/pinterest/PINRemoteImage/pull/492) [rqueue](https://github.com/rqueue)
+- [fixed] Fixes blending in animated WebP images. [#507](https://github.com/pinterest/PINRemoteImage/pull/507) [garrettmoon](https://github.com/garrettmoon)
+- [fixed] Fixes support in PINAnimatedImageView for WebP animated images. [#507](https://github.com/pinterest/PINRemoteImage/pull/507) [garrettmoon](https://github.com/garrettmoon)
+- [fixed] Fixes re-downloading data corrupt for the same url. [#514](https://github.com/pinterest/PINRemoteImage/pull/514) [zhongwuzw](https://github.com/zhongwuzw)
+- [new] Exposure didCompleteTask:withError: delegate method of protocol PINURLSessionManagerDelegate. [#519](https://github.com/pinterest/PINRemoteImage/pull/519) [zhongwuzw](https://github.com/zhongwuzw)
+- [fixed] Fixes AnimatedImageView designated initializer not work. [#512](https://github.com/pinterest/PINRemoteImage/pull/512) [zhongwuzw](https://github.com/zhongwuzw)
+- [fixed] Set bpp(bits per pixel) to 32 bit for GIF. [#511](https://github.com/pinterest/PINRemoteImage/pull/511) [zhongwuzw](https://github.com/zhongwuzw)
+- [new] Add cancel method for PINRemoteImageManager. [#509](https://github.com/pinterest/PINRemoteImage/pull/509) [zhongwuzw](https://github.com/zhongwuzw)
+- [fixed] Fixes build error when using Xcode 10.2.1. [#524](https://github.com/pinterest/PINRemoteImage/pull/524) [ANNotunzdY](https://github.com/ANNotunzdY)
+
+## 3.0.0 Beta 14
+- [fixed] Re-enable warnings check [#506](https://github.com/pinterest/PINRemoteImage/pull/506) [garrettmoon](https://github.com/garrettmoon)
+- [new] Allow use of NSURLCache via a custom NSURLSession [#477](https://github.com/pinterest/PINRemoteImage/pull/477) [wiseoldduck](https://github.com/wiseoldduck)
+- [new] Respect Cache-Control and Expires headers if the cache supports TTL. [#462](https://github.com/pinterest/PINRemoteImage/pull/462) [wiseoldduck](https://github.com/wiseoldduck)
+- [new] Updated to latest PINCache beta 7. [#461](https://github.com/pinterest/PINRemoteImage/pull/461) [wiseoldduck](https://github.com/wiseoldduck)
 - [iOS11] Fix warnings [#428](https://github.com/pinterest/PINRemoteImage/pull/428) [Eke](https://github.com/Eke)
 - [new / beta] Native Support for GIFs and animated WebP [#453](https://github.com/pinterest/PINRemoteImage/pull/453) [garrettmoon](https://github.com/garrettmoon)
 - [new] Add support for getting NSURLSessionMetrics back. [#456](https://github.com/pinterest/PINRemoteImage/pull/456) [garrettmoon](https://github.com/garrettmoon)
@@ -12,6 +51,8 @@
 - [cleanup] Remove unused code that supported iOS < 7. [#435](https://github.com/pinterest/PINRemoteImage/pull/435) [Adlai-Holler](https://github.com/Adlai-Holler)
 - [cleanup] Use NS_ERROR_ENUM to improve Swift import. [#440](https://github.com/pinterest/PINRemoteImage/pull/440) [Adlai-Holler](https://github.com/Adlai-Holler)
 - [fixed] Fixes nil session manager configuration. [#460](https://github.com/pinterest/PINRemoteImage/pull/460) [garrettmoon](https://github.com/garrettmoon)
+- [fixed] Fixes deprecated -defaultImageCache not being called if overridden. [479](https://github.com/pinterest/PINRemoteImage/pull/479) [nguyenhuy](https://github.com/nguyenhuy)
+- [new] Add a new API that allows a priority to be set when a new download task is scheduled. [#490](https://github.com/pinterest/PINRemoteImage/pull/490) [nguyenhuy](https://github.com/nguyenhuy)
 
 ## 3.0.0 Beta 13
 - [new] Support for webp and improved support for GIFs. [#411](https://github.com/pinterest/PINRemoteImage/pull/411) [garrettmoon](https://github.com/garrettmoon)

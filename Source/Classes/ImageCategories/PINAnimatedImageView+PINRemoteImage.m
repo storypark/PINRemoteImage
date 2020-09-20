@@ -96,6 +96,22 @@
     self.image = image;
 }
 
+- (void)pin_setImageFromURL:(nullable NSURL *)url
+           placeholderImage:(nullable UIImage *)placeholderImage
+               processorKey:(nullable NSString *)processorKey
+            requestModifier:(nullable PINRemoteImageManagerRequestModifier)requestModifier
+                  processor:(nullable PINRemoteImageManagerImageProcessor)processor
+                 completion:(nullable PINRemoteImageManagerImageCompletion)completion
+{
+    [PINRemoteImageCategoryManager setImageOnView:self
+                                         fromURLs:@[url]
+                                 placeholderImage:placeholderImage
+                                     processorKey:processorKey
+                                  requestModifier:requestModifier
+                                        processor:processor
+                                       completion:completion];
+}
+
 - (void)pin_updateUIWithRemoteImageManagerResult:(PINRemoteImageManagerResult *)result
 {
     if (result.alternativeRepresentation && [result.alternativeRepresentation isKindOfClass:[PINCachedAnimatedImage class]]) {
@@ -115,5 +131,7 @@
 {
     return NO;
 }
+
+
 
 @end
