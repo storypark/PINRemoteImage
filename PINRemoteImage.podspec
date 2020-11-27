@@ -9,7 +9,7 @@
 
 Pod::Spec.new do |s|
   s.name             = "PINRemoteImage"
-  s.version          = "3.0.1"
+  s.version          = "3.0.3"
   s.summary          = "A thread safe, performant, feature rich image fetcher"
   s.homepage         = "https://github.com/pinterest/PINRemoteImage"
   s.license          = 'Apache 2.0'
@@ -35,7 +35,7 @@ Pod::Spec.new do |s|
     cs.osx.deployment_target = osx_deployment
     cs.source_files = 'Source/Classes/**/*.{h,m}'
     cs.public_header_files = 'Source/Classes/**/*.h'
-    cs.exclude_files = 'Source/Classes/PINCache/*.{h,m}'
+    cs.exclude_files = 'Source/Classes/PINCache/*.{h,m}', 'Source/Classes/include/PINCache+PINRemoteImageCaching.h'
     cs.frameworks = 'ImageIO', 'Accelerate'
   end
   
@@ -71,11 +71,11 @@ Pod::Spec.new do |s|
   
   s.subspec "PINCache" do |pc|
     pc.dependency 'PINRemoteImage/Core'
-    pc.dependency 'PINCache', '~> 3.0.1'
+    pc.dependency 'PINCache', '~> 3.0.3'
     pc.ios.deployment_target = ios_deployment
     pc.tvos.deployment_target = tvos_deployment
     pc.osx.deployment_target = osx_deployment
-    pc.source_files = 'Source/Classes/PINCache/*.{h,m}'
+    pc.source_files = 'Source/Classes/PINCache/*.{h,m}', 'Source/Classes/include/PINCache+PINRemoteImageCaching.h'
   end
   
 end
