@@ -30,6 +30,9 @@ NS_INLINE BOOL pin_CGImageRefIsOpaque(CGImageRef imageRef) {
 
 #if PIN_TARGET_IOS
 NS_INLINE void pin_degreesFromOrientation(UIImageOrientation orientation, void (^completion)(CGFloat degrees, BOOL horizontalFlip, BOOL verticalFlip)) {
+    // When returning degrees, we want to undo the degrees of rotation that have already been applied
+    // to the image. So, if an image was rotate UIImageOrientationRight (or 90 deg CW), we should invert
+    // that number to create the correct rotation transform to undo the baked orientation.
     switch (orientation) {
         case UIImageOrientationUp: // default orientation
             completion(0.0, NO, NO);
@@ -37,11 +40,11 @@ NS_INLINE void pin_degreesFromOrientation(UIImageOrientation orientation, void (
         case UIImageOrientationDown: // 180 deg rotation
             completion(180.0, NO, NO);
             break;
-        case UIImageOrientationLeft:
-            completion(270.0, NO, NO); // 90 deg CCW
+        case UIImageOrientationLeft: // 90 deg CCW
+            completion(90.0, NO, NO); 
             break;
-        case UIImageOrientationRight:
-            completion(90.0, NO, NO); // 90 deg CW
+        case UIImageOrientationRight: // 90 deg CW
+            completion(-90.0, NO, NO); 
             break;
         case UIImageOrientationUpMirrored: // as above but image mirrored along other axis. horizontal flip
             completion(0.0, YES, NO);
@@ -50,10 +53,10 @@ NS_INLINE void pin_degreesFromOrientation(UIImageOrientation orientation, void (
             completion(180.0, YES, NO);
             break;
         case UIImageOrientationLeftMirrored: // vertical flip
-            completion(270.0, NO, YES);
+            completion(90.0, NO, YES);
             break;
         case UIImageOrientationRightMirrored: // vertical flip
-            completion(90.0, NO, YES);
+            completion(-90.0, NO, YES);
             break;
     }
 }
